@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SREC CHAT BOT</title>
+  <style>
+    body {
+ 
+    font-family: 'Times New Roman', Times, serif;
+  
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      background-image: url('/static/images/SREC_collage.jpg');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      backdrop-filter: blur(3px);
+    }
+
+    h1 {
+      color: #fff;
+      margin-bottom: 15px;
+      text-shadow: 2px 2px 5px #000;
+      background: linear-gradient(90deg, #ff7eb3, #ff758c);
+      padding: 10px 25px;
+      border-radius: 20px;
+      box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    #chatbox {
+      width: 400px;
+      height: 500px;
+      padding: 15px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(240, 240, 255, 0.9));
+      border-radius: 20px;
+      box-shadow: 0 15px 30px rgba(0, 0, 0, 0.25);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      backdrop-filter: blur(6px);
+    }
+
+    #chatbox div {
+      padding: 12px;
+      margin: 10px 0;
+      border-radius: 15px;
+      font-size: 16px;
+      line-height: 1.4;
+      max-width: 85%;
+      word-wrap: break-word;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .user-msg {
+      background: linear-gradient(145deg, #6a11cb, #2575fc);
+      color: white;
+      align-self: flex-start;
+      border-top-right-radius: 0;
+    }
+
+    .bot-msg {
+      background: linear-gradient(145deg, #f9f9f9, #ddd);
+      color: #333;
+      align-self: flex-end;
+      border-top-left-radius: 0;
+    }
+
+    .bot-img {
+      margin-top: 10px;
+      max-width: 100%;
+      border-radius: 10px;
+    }
+
+    #input-area {
+      width: 400px;
+      display: flex;
+      justify-content: space-between;
+      margin-top: 15px;
+      background: rgba(255, 255, 255, 0.8);
+      padding: 10px;
+      border-radius: 30px;
+      box-shadow: 0px 5px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    #user-input {
+      width: 72%;
+      padding: 12px;
+      border-radius: 25px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+      outline: none;
+      background-color: #f0f8ff;
+    }
+
+    #send-btn {
+      width: 24%;
+      padding: 12px;
+      background: linear-gradient(to right, #ff6a00, #ee0979);
+      color: white;
+      border: none;
+      border-radius: 25px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background 0.3s ease;
+    }
+
+    #send-btn:hover {
+      background: linear-gradient(to right, #ee0979, #ff6a00);
+    }
+
+    .typing-indicator {
+      font-size: 14px;
+      color: #fff;
+      padding-top: 5px;
+      text-shadow: 1px 1px 2px #000;
+    }
+
+    .typing-indicator.active {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>SREC CHAT BOT</h1>
+
+  <div id="chatbox"></div>
+
+  <div id="input-area">
+    <input type="text" id="user-input" placeholder="Ask me anything..." />
+    <button id="send-btn">Send</button>
+  </div>
+
+  <div id="typing-indicator" class="typing-indicator">Bot is typing...</div>
+
+  <script>
+    const chatbox = document.getElementById('chatbox');
+    const userInput = document.getElementById('user-input');
+    const sendBtn = document.getElementById('send-btn');
+    const typingIndicator = document.getElementById('typing-indicator');
+
+    function displayMessage(message, sender, imageUrl = null) {
+      const msgWrapper = document.createElement('div');
+      msgWrapper.classList.add(sender === 'user' ? 'user-msg' : 'bot-msg');
+
+      const textDiv = document.createElement('div');
+      // Support line breaks in message
+      textDiv.innerHTML = message.replace(/\n/g, "<br>");
+      msgWrapper.appendChild(textDiv);
+
+      if (imageUrl) {
+        const img = document.createElement('img');
+        img.src = imageUrl;
+        img.className = 'bot-img';
+        msgWrapper.appendChild(img);
+      }
+
+      chatbox.appendChild(msgWrapper);
+      chatbox.scrollTop = chatbox.scrollHeight;
+    }
+
+    function showTypingIndicator() {
+      typingIndicator.classList.add('active');
+    }
+
+    function hideTypingIndicator() {
+      typingIndicator.classList.remove('active');
+    }
+
+    function bulletFormat(text) {
+      // Prevent splitting inside titles like Dr., Mr., Ms., etc.
+      const safeText = text.replace(/\b(Dr|Mr|Ms|Mrs)\./g, (match) => match.replace('.', '[dot]'));
+
+      // Split sentences by period followed by space or end of line
+      const lines = safeText.split(/\. (?=[A-Z])|\. *$/).filter(line => line.trim() !== '');
+
+      // Add bullet and restore [dot] to .
+      return lines.map(line => `• ${line.replace(/\[dot\]/g, '.')}`).join('\n');
+    }
+
+    // Initial message
+    displayMessage("• Hi! How can I help you?", 'bot');
+
+    sendBtn.addEventListener('click', () => {
+      const userMessage = userInput.value.trim();
+      if (userMessage) {
+        displayMessage(userMessage, 'user');
+        userInput.value = '';
+        showTypingIndicator();
+        fetch(`/get?msg=${encodeURIComponent(userMessage)}`)
+          .then(response => response.json())
+          .then(data => {
+            hideTypingIndicator();
+
+            const bulletMessage = bulletFormat(data.response);
+            displayMessage(bulletMessage, 'bot', data.image);
+          })
+          .catch(() => {
+            hideTypingIndicator();
+            displayMessage("• Sorry, something went wrong.", 'bot');
+          });
+      }
+    });
+
+    userInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        sendBtn.click();
+      }
+    });
+  </script>
+</body>
+</html>
